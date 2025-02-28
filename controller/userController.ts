@@ -127,48 +127,72 @@ export const deleteUser = async (req: Request, res: Response): Promise<any> => {
 
 
 
+// export const getUserProfile = async (req: Request, res: Response): Promise<any> => {
+//     try {
+//         const cacheKey = "allUsers";
+//         const cacheTimestampKey = "allUsers:timestamp";
+
+//         const cachedData = await redisClient.get(cacheKey);
+//         const cachedTimestamp = await redisClient.get(cacheTimestampKey);
+
+//         if (cachedData && cachedTimestamp) {
+//             console.log("✅ Fetched from Redis Cache");
+//             return res.json({
+//                 message: "Users retrieved from cache",
+//                 users: JSON.parse(cachedData),
+//                 lastUpdated: cachedTimestamp,
+//             });
+//         }
+
+//         // Fetch all users from MongoDB (sorted by latest)
+//         const users = await User.find().sort({ createdAt: -1 });
+
+//         if (!users.length) {
+//             return res.status(404).json({ message: "No users found" });
+//         }
+
+//         // Get current timestamp
+//         const currentTime = new Date().toISOString();
+
+//         // Store data in Redis with expiration time (5 minutes)
+//         await redisClient.set(cacheKey, JSON.stringify(users), "EX", 300);
+//         await redisClient.set(cacheTimestampKey, currentTime, "EX", 300);
+
+//         console.log("📦 Fetched from MongoDB & Cached in Redis");
+//         return res.json({
+//             message: "Users retrieved from database",
+//             users,
+//             lastUpdated: currentTime,
+//         });
+
+//     } catch (error) {
+//         console.error("Error fetching users:", error);
+//         return res.status(500).json({ error: "Internal Server Error" });
+//     }
+// };
 export const getUserProfile = async (req: Request, res: Response): Promise<any> => {
     try {
-        const cacheKey = "allUsers";
-        const cacheTimestampKey = "allUsers:timestamp";
+        const cachedUser = await redisClient.get("users");
+        console.log("Redis Cached Data:", cachedUser); // Debug log
 
-        const cachedData = await redisClient.get(cacheKey);
-        const cachedTimestamp = await redisClient.get(cacheTimestampKey);
-
-        if (cachedData && cachedTimestamp) {
-            console.log("✅ Fetched from Redis Cache");
-            return res.json({
-                message: "Users retrieved from cache",
-                users: JSON.parse(cachedData),
-                lastUpdated: cachedTimestamp,
-            });
+        if (cachedUser) {
+            return res.status(200).json({ message: "Data fetched from cache", result: JSON.parse(cachedUser) });
         }
 
-        // Fetch all users from MongoDB (sorted by latest)
-        const users = await User.find().sort({ createdAt: -1 });
+        const result = await User.find();
+        console.log("Database Data:", result); // Debug log
+        console.log(result, "resultttttt");
 
-        if (!users.length) {
+
+        if (!result || result.length === 0) {
             return res.status(404).json({ message: "No users found" });
         }
 
-        // Get current timestamp
-        const currentTime = new Date().toISOString();
-
-        // Store data in Redis with expiration time (5 minutes)
-        await redisClient.set(cacheKey, JSON.stringify(users), "EX", 300);
-        await redisClient.set(cacheTimestampKey, currentTime, "EX", 300);
-
-        console.log("📦 Fetched from MongoDB & Cached in Redis");
-        return res.json({
-            message: "Users retrieved from database",
-            users,
-            lastUpdated: currentTime,
-        });
-
+        await redisClient.setex("users", 3600, JSON.stringify(result)); // Store for 1 hour
+        return res.status(200).json({ message: "Data fetched from DB", result });
     } catch (error) {
-        console.error("Error fetching users:", error);
-        return res.status(500).json({ error: "Internal Server Error" });
+        console.error("Server Error:", error);
+        return res.status(500).json({ message: "Server Error", error });
     }
-};
-
+}
 
