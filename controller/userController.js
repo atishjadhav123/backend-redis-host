@@ -139,20 +139,33 @@ exports.deleteUser = deleteUser;
 const getUserProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const cacheKey = "allUsers";
+        const cacheTimestampKey = "allUsers:timestamp";
         const cachedData = yield redisClient_1.default.get(cacheKey);
-        if (cachedData) {
+        const cachedTimestamp = yield redisClient_1.default.get(cacheTimestampKey);
+        if (cachedData && cachedTimestamp) {
             console.log("✅ Fetched from Redis Cache");
-            return res.json(JSON.parse(cachedData));
+            return res.json({
+                message: "Users retrieved from cache",
+                users: JSON.parse(cachedData),
+                lastUpdated: cachedTimestamp,
+            });
         }
-        // Fetch all users from MongoDB
-        const users = yield user_1.default.find().sort({ createdAt: -1 }); // Sort by latest users
+        // Fetch all users from MongoDB (sorted by latest)
+        const users = yield user_1.default.find().sort({ createdAt: -1 });
         if (!users.length) {
             return res.status(404).json({ message: "No users found" });
         }
+        // Get current timestamp
+        const currentTime = new Date().toISOString();
         // Store data in Redis with expiration time (5 minutes)
         yield redisClient_1.default.set(cacheKey, JSON.stringify(users), "EX", 300);
+        yield redisClient_1.default.set(cacheTimestampKey, currentTime, "EX", 300);
         console.log("📦 Fetched from MongoDB & Cached in Redis");
-        return res.json({ message: "user find success", users });
+        return res.json({
+            message: "Users retrieved from database",
+            users,
+            lastUpdated: currentTime,
+        });
     }
     catch (error) {
         console.error("Error fetching users:", error);

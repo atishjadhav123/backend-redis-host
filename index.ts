@@ -11,7 +11,7 @@ app.use(express.urlencoded({ extended: true }))
 
 
 app.use(cors({
-    origin: "http://localhost:5173", // ✅ Set specific allowed origin
+    origin: true, // ✅ Set specific allowed origin
     credentials: true, // ✅ Allow cookies & auth headers
     methods: ["GET", "POST", "PUT", "DELETE"], // ✅ Allowed request methods
     allowedHeaders: ["Content-Type", "Authorization"], // ✅ Allowed headers

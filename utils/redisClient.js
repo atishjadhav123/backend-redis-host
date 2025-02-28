@@ -7,7 +7,6 @@ const ioredis_1 = __importDefault(require("ioredis"));
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const redisClient = new ioredis_1.default(process.env.REDIS_URL || "redis://localhost:6379");
-// Handle connection errors
 redisClient.on("error", (err) => {
     console.error("❌ Redis connection error:", err);
 });
